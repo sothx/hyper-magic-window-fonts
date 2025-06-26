@@ -5,6 +5,7 @@ import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 
 export default tseslint.config([
 	eslint.configs.recommended,
+	tseslint.configs.recommended,
 	eslintPluginPrettierRecommended,
 	{
 		languageOptions: {
