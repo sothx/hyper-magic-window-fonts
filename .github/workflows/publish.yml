@@ -1,0 +1,57 @@
+name: 构建和发布
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: 签出代码
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # 拉取完整历史记录
+
+            - name: 安装 pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 'latest'
+                  run_install: false
+
+            - name: 准备 Node.js 环境
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - name: 安装依赖
+              run: pnpm install --frozen-lockfile --reporter=silent
+
+            - name: 运行构建
+              run: pnpm run build
+
+            - name: 读取 package.json 版本号
+              id: version
+              run: echo "VERSION=v$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+            - name: 提交并推送
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+                  git checkout --orphan publish/${{ steps.version.outputs.VERSION }}
+
+                  mkdir ../temp
+                  cp -r dist/*  package.json ../temp
+
+                  git reset --hard
+
+                  cp -r ../temp/* .
+
+                  git add -f dist package.json
+                  git commit -m "Release ${{ steps.version.outputs.VERSION }}"
+                  git push origin publish/${{ steps.version.outputs.VERSION }}
